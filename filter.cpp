@@ -1,27 +1,13 @@
 #include "filter.h"
 
 // Constructor
-filter::filter(cv::Mat img, lowPassFilter lpf)
+// Builds OpenCl program
+filter::filter(lowPassFilter lpf, cl_context context, cl_uint deviceCount, cl_device_id* devices)
 {
-    setImage(img);
     this->lpf = lpf;
-}
-
-void filter::setImage(cv::Mat img)
-{
-    image = img;
-}
-
-void filter::runProgram()
-{
-    // initialize
-    FILE* programHandle;
-    char *programBuffer;
-    size_t programSize;
-    cl_program program;
 
     // get size of kernel source
-    programHandle = fopen(lpf.clPath, "r");
+    programHandle = fopen(lpf.getClPath, "r");
     fseek(programHandle, 0, SEEK_END);
     programSize = ftell(programHandle);
     rewind(programHandle);
@@ -33,13 +19,13 @@ void filter::runProgram()
     fclose(programHandle);
 
     // create program from buffer
-    program = clCreateProgramWithSource(lpf.context, 1,
+    program = clCreateProgramWithSource(context, 1,
             (const char**) &programBuffer, &programSize, NULL);
 
     // build program
     const char* buildOptions = "";
-    cl_int warn = clBuildProgram(program, deviceCount, devices, buildOptions, NULL, NULL);
-    std::cout << "program error: " << warn << "\n";
+    err = clBuildProgram(program, deviceCount, devices, buildOptions, NULL, NULL);
+    std::cout << "program error: " << err << "\n";
 
     // create the log string and show it to the user. Then quit
     char buildLog[MAX_LOG_SIZE];
@@ -52,38 +38,13 @@ void filter::runProgram()
     printf("**BUILD LOG**\n%s",buildLog);
     std::cout << "clGetProgramBuildInfo error: " << err << "\n";
 
-    //create queue to which we will push commands for the device.
-    cl_command_queue queue;
+    //create queue to which we will push commands for the device
     queue = clCreateCommandQueue(context,devices[0],0,&err);
     std::cout << "command queue error: " << err << "\n";
 
-    // Create an OpenCL buffer for the image
-    cl_mem clImage = clCreateBuffer(context,
-                                    CL_MEM_READ_ONLY,
-                                    imageSize * 3,
-                                    NULL,
-                                    &err);
-    std::cout << "clImage error: " << err << "\n";
-
-    // Create an OpenCL buffer for the result
-    cl_mem clResult = clCreateBuffer(context,
-                                     CL_MEM_WRITE_ONLY,
-                                     imageSize * 4,
-                                     NULL,
-                                     &err);
-    std::cout << "clResult error: " << err << "\n";
-
-    // Create an extra buffer for debugging
-    cl_int debug_buffer_size = 50;
-    cl_mem clDebug = clCreateBuffer(context,
-                                     CL_MEM_WRITE_ONLY,
-                                     debug_buffer_size,
-                                     NULL,
-                                     &err);
-    std::cout << "clDebug error: " << err << "\n";
 
     // Create Gaussian mask
-    int maskSize = 1;  // actually sigma
+/*    int maskSize = 1; */ // actually sigma
     //float * mask = createBlurMask(10.0f, &maskSize);
 
     // Create buffer for mask
@@ -95,22 +56,66 @@ void filter::runProgram()
 //    std::cout << "clMask error: " << err << "\n";
 
     // create Gaussian kernel
-    cl_kernel gaussianBlur = clCreateKernel(program, "gaussian_blur", &err);
+    kernel = clCreateKernel(program, "gaussian_blur", &err);
     std::cout << "cl_kernel error: " << err << "\n";
+}
+
+// Stores image to process
+// Creates buffers to store image on device
+void filter::setImage(cv::Mat img)
+{
+    image = img;
+
+    imageWidth = image.cols;
+    imageHeight = image.rows;
+    imageSize = imageHeight * imageWidth;
+
+    unsigned char newData [imageSize * 4];
+    newDataPointer = &newData;
+
+    // Create an OpenCL buffer for the image
+    clImage = clCreateBuffer(context,
+                                    CL_MEM_READ_ONLY,
+                                    imageSize * 3,
+                                    NULL,
+                                    &err);
+    std::cout << "clImage error: " << err << "\n";
+
+    // Create an OpenCL buffer for the result
+    clResult = clCreateBuffer(context,
+                                     CL_MEM_WRITE_ONLY,
+                                     imageSize * 4,
+                                     NULL,
+                                     &err);
+    std::cout << "clResult error: " << err << "\n";
+
+    // Create an extra buffer for debugging
+    clDebug = clCreateBuffer(context,
+                                     CL_MEM_WRITE_ONLY,
+                                     DEBUG_BUFFER_SIZE,
+                                     NULL,
+                                     &err);
+    std::cout << "clDebug error: " << err << "\n";
+
+}
+
+void filter::runProgram()
+{
+
 
     // set kernel arguments
-    err = clSetKernelArg(gaussianBlur, 0, sizeof(cl_mem), (void *)&clImage);
+    err = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&clImage);
     std::cout << "kernel arg 0 error: " << err << "\n";
 //    clSetKernelArg(gaussianBlur, 1, sizeof(cl_mem), &clMask);
-    err = clSetKernelArg(gaussianBlur, 1, sizeof(cl_mem), (void *)&clResult);
+    err = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&clResult);
     std::cout << "kernel arg 1 error: " << err << "\n";
-    err = clSetKernelArg(gaussianBlur, 2, sizeof(int), &imageWidth);
+    err = clSetKernelArg(kernel, 2, sizeof(int), &imageWidth);
     std::cout << "kernel arg 2 error: " << err << "\n";
-    err = clSetKernelArg(gaussianBlur, 3, sizeof(int), &imageHeight);
+    err = clSetKernelArg(kernel, 3, sizeof(int), &imageHeight);
     std::cout << "kernel arg 3 error: " << err << "\n";
-    clSetKernelArg(gaussianBlur, 4, sizeof(cl_int), &maskSize);
+    clSetKernelArg(kernel, 4, sizeof(cl_int), lpf.getMaskSize());
     std::cout << "kernel arg 4 error: " << err << "\n";
-    err = clSetKernelArg(gaussianBlur, 5, sizeof(cl_mem), &clDebug);
+    err = clSetKernelArg(kernel, 5, sizeof(cl_mem), &clDebug);
     std::cout << "kernel arg 5 error: " << err << "\n";
 //CL_SUCCESS
     // load image to device
@@ -131,7 +136,7 @@ void filter::runProgram()
 
     // Run Gaussian kernel
     err = clEnqueueNDRangeKernel(queue,
-                                 gaussianBlur,
+                                 kernel,
                                  2,
                                  NULL,
                                  globalws,
@@ -147,19 +152,19 @@ void filter::runProgram()
                               CL_TRUE,
                               0,
                               imageSize * 4,
-                              (void*) newData,
+                              newDataPointer,
                               NULL,
                               NULL,
                               NULL);
     std::cout << "enqueueReadImage error: " << err << "\n";
 
     // Transfer debug buffer back to host
-    float debug [debug_buffer_size];
+    float debug [DEBUG_BUFFER_SIZE];
     err = clEnqueueReadBuffer(queue,
                               clDebug,
                               CL_TRUE,
                               0,
-                              debug_buffer_size,
+                              DEBUG_BUFFER_SIZE,
                               (void*) debug,
                               NULL,
                               NULL,
