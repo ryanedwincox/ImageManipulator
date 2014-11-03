@@ -22,15 +22,18 @@ int main()
     // get first platform
     cl_platform_id platform;
     cl_int err = clGetPlatformIDs(1, &platform, NULL);
+    std::cout << "platform error: " << err << std::endl;
 
     // get device count
     cl_uint deviceCount;
     err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, NULL, &deviceCount);
+    std::cout << "device count error: " << err << std::endl;
 
     // get device count
     cl_device_id* devices;
     devices = new cl_device_id[deviceCount];
     err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, deviceCount, devices, NULL);
+    std::cout << "device ID error: " << err << std::endl;
 
     // create a single context for all devices
     cl_context context = clCreateContext(NULL, deviceCount, devices, NULL, NULL, &err);
@@ -52,21 +55,24 @@ int main()
     size_t imageSize = imageHeight * imageWidth;
 
     // Will store filter results
-    unsigned char newData [imageSize * 4];
+    //unsigned char newData;
+    unsigned char* newDataPointer;
 
-    // Create each type of filter object
-    lowPassFilter lpf;  // = new lowPassFilter();  ????
+    const char* lpfClPath = "/home/bluhaptics1/Documents/ImageManipulator/cl/gaussian_blur.cl";
+    cl_int lpfMaskSize = 3;
 
     // Create new filter
-    filter f1(lpf, context, deviceCount, devices);  // = new filter(image, lpf);   ?????
+    filter lpf(context, deviceCount, devices, lpfClPath, lpfMaskSize);
 
-    // Run filter
+    // Create buffers and filter
+    lpf.setImage(image);
+    newDataPointer = (unsigned char*) lpf.runProgram();
 
     // Display images
-    cv::Mat newImage = cv::Mat(cv::Size(imageWidth,imageHeight), CV_8UC4, newData);
+    cv::Mat newImage = cv::Mat(cv::Size(imageWidth,imageHeight), CV_8UC4, (unsigned char) *newDataPointer);
 
     cv::namedWindow("Original Image", cv::WINDOW_AUTOSIZE); // Create a window for display.
-    cv::imshow("Original Image", f1.getImage());           // Show our image inside it.
+    cv::imshow("Original Image", lpf.getImage());           // Show our image inside it.
 
     cv::namedWindow("Blured Image", cv::WINDOW_AUTOSIZE); // Create a window for display.
     cv::imshow("Blured Image", newImage);                 // Show our image inside it.

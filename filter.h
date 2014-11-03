@@ -10,15 +10,17 @@
 #include <sstream>
 #include <fstream>
 
+//#include <array>
+
 #define MAX_LOG_SIZE (0x100000)
 #define DEBUG_BUFFER_SIZE 50 // cl_int
 
 class filter
 {
 public:
-    filter(lowPassFilter lpf, cl_context context, cl_uint deviceCount, cl_device_id* devices);
+    filter(cl_context context, cl_uint deviceCount, cl_device_id* devices, const char* clPath, cl_int maskSize);
     void setImage(cv::Mat img);
-    void runProgram();
+    void* runProgram();
     cv::Mat getImage();
 private:
     //filter() {}
@@ -26,8 +28,10 @@ private:
     size_t imageWidth;
     size_t imageHeight;
     size_t imageSize;
-    void* newDataPointer;
-    lowPassFilter lpf;
+    //unsigned char* newDataPointer;
+    //unsigned char newData;
+    const char* clPath;
+    cl_int maskSize;
 
     FILE* programHandle;
     char *programBuffer;

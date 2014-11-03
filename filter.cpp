@@ -2,12 +2,15 @@
 
 // Constructor
 // Builds OpenCl program
-filter::filter(lowPassFilter lpf, cl_context context, cl_uint deviceCount, cl_device_id* devices)
+filter::filter(cl_context context, cl_uint deviceCount, cl_device_id* devices, const char* clPath, cl_int maskSize)
 {
-    this->lpf = lpf;
+    this->context = context;
+    this->clPath = clPath;
+    this->maskSize = maskSize;
 
     // get size of kernel source
-    programHandle = fopen(lpf.getClPath, "r");
+    const char* kernelSource = clPath;
+    programHandle = fopen(kernelSource, "r");
     fseek(programHandle, 0, SEEK_END);
     programSize = ftell(programHandle);
     rewind(programHandle);
@@ -62,46 +65,54 @@ filter::filter(lowPassFilter lpf, cl_context context, cl_uint deviceCount, cl_de
 
 // Stores image to process
 // Creates buffers to store image on device
+// TODO: only need to pass in imgSize for this function, maybe set the image somewhere else
 void filter::setImage(cv::Mat img)
 {
+    std::cout << "Creating image buffers" << std::endl;
     image = img;
 
     imageWidth = image.cols;
     imageHeight = image.rows;
     imageSize = imageHeight * imageWidth;
 
-    unsigned char newData [imageSize * 4];
-    newDataPointer = &newData;
+//    unsigned char newData [imageSize * 4];
+//    newDataPointer = &newData;
 
     // Create an OpenCL buffer for the image
     clImage = clCreateBuffer(context,
-                                    CL_MEM_READ_ONLY,
-                                    imageSize * 3,
-                                    NULL,
-                                    &err);
-    std::cout << "clImage error: " << err << "\n";
+                             CL_MEM_READ_ONLY,
+                             imageSize * 3,
+                             NULL,
+                             &err);
+    std::cout << "clImage Buffer error: " << err << "\n";
 
     // Create an OpenCL buffer for the result
     clResult = clCreateBuffer(context,
-                                     CL_MEM_WRITE_ONLY,
-                                     imageSize * 4,
-                                     NULL,
-                                     &err);
-    std::cout << "clResult error: " << err << "\n";
+                              CL_MEM_WRITE_ONLY,
+                              imageSize * 4,
+                              NULL,
+                              &err);
+    std::cout << "clResult Buffer error: " << err << "\n";
 
     // Create an extra buffer for debugging
     clDebug = clCreateBuffer(context,
-                                     CL_MEM_WRITE_ONLY,
-                                     DEBUG_BUFFER_SIZE,
-                                     NULL,
-                                     &err);
-    std::cout << "clDebug error: " << err << "\n";
+                             CL_MEM_WRITE_ONLY,
+                             DEBUG_BUFFER_SIZE,
+                             NULL,
+                             &err);
+    std::cout << "clDebug Buffer error: " << err << "\n";
 
 }
 
-void filter::runProgram()
+void* filter::runProgram()
 {
+    imageWidth = image.cols;
+    imageHeight = image.rows;
+    imageSize = imageHeight * imageWidth;
+    size_t imageSiz = imageHeight * imageWidth;
 
+    unsigned char newData [imageSiz * 4];
+    void* newDataPointer = &newData;
 
     // set kernel arguments
     err = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&clImage);
@@ -113,7 +124,7 @@ void filter::runProgram()
     std::cout << "kernel arg 2 error: " << err << "\n";
     err = clSetKernelArg(kernel, 3, sizeof(int), &imageHeight);
     std::cout << "kernel arg 3 error: " << err << "\n";
-    clSetKernelArg(kernel, 4, sizeof(cl_int), lpf.getMaskSize());
+    err = clSetKernelArg(kernel, 4, sizeof(cl_int), &maskSize);
     std::cout << "kernel arg 4 error: " << err << "\n";
     err = clSetKernelArg(kernel, 5, sizeof(cl_mem), &clDebug);
     std::cout << "kernel arg 5 error: " << err << "\n";
@@ -153,10 +164,12 @@ void filter::runProgram()
                               0,
                               imageSize * 4,
                               newDataPointer,
-                              NULL,
+                              0,
                               NULL,
                               NULL);
     std::cout << "enqueueReadImage error: " << err << "\n";
+
+    //std::cout << "Size of newData: " << sizeof(*newDataPointer) << std::endl;
 
     // Transfer debug buffer back to host
     float debug [DEBUG_BUFFER_SIZE];
@@ -166,10 +179,12 @@ void filter::runProgram()
                               0,
                               DEBUG_BUFFER_SIZE,
                               (void*) debug,
-                              NULL,
+                              0,
                               NULL,
                               NULL);
     std::cout << "clDebug read buffer error: " << err << "\n";
+
+    return newDataPointer;
 }
 
 cv::Mat filter::getImage()
