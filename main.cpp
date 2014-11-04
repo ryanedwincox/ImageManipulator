@@ -55,7 +55,6 @@ int main()
     size_t imageSize = imageHeight * imageWidth;
 
     // Will store filter results
-    //unsigned char newData;
     unsigned char* newDataPointer;
 
     const char* lpfClPath = "/home/bluhaptics1/Documents/ImageManipulator/cl/gaussian_blur.cl";
@@ -66,10 +65,11 @@ int main()
 
     // Create buffers and filter
     lpf.setImage(image);
-    newDataPointer = (unsigned char*) lpf.runProgram();
+    newDataPointer =  (unsigned char*) lpf.runProgram();
 
     // Display images
-    cv::Mat newImage = cv::Mat(cv::Size(imageWidth,imageHeight), CV_8UC4, (unsigned char) *newDataPointer);
+    std::cout << "Display images" << std::endl;
+    cv::Mat newImage = cv::Mat(cv::Size(imageWidth,imageHeight), CV_8UC4, newDataPointer);
 
     cv::namedWindow("Original Image", cv::WINDOW_AUTOSIZE); // Create a window for display.
     cv::imshow("Original Image", lpf.getImage());           // Show our image inside it.

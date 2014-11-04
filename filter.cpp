@@ -109,10 +109,8 @@ void* filter::runProgram()
     imageWidth = image.cols;
     imageHeight = image.rows;
     imageSize = imageHeight * imageWidth;
-    size_t imageSiz = imageHeight * imageWidth;
 
-    unsigned char newData [imageSiz * 4];
-    void* newDataPointer = &newData;
+    unsigned char newData [imageSize * 4];
 
     // set kernel arguments
     err = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&clImage);
@@ -163,28 +161,27 @@ void* filter::runProgram()
                               CL_TRUE,
                               0,
                               imageSize * 4,
-                              newDataPointer,
+                              (void*) newData,
                               0,
                               NULL,
                               NULL);
     std::cout << "enqueueReadImage error: " << err << "\n";
 
-    //std::cout << "Size of newData: " << sizeof(*newDataPointer) << std::endl;
-
     // Transfer debug buffer back to host
-    float debug [DEBUG_BUFFER_SIZE];
+    //float debug [DEBUG_BUFFER_SIZE];
+    unsigned char debug [DEBUG_BUFFER_SIZE];
     err = clEnqueueReadBuffer(queue,
                               clDebug,
                               CL_TRUE,
                               0,
                               DEBUG_BUFFER_SIZE,
-                              (void*) debug,
+                              debug,
                               0,
                               NULL,
                               NULL);
     std::cout << "clDebug read buffer error: " << err << "\n";
 
-    return newDataPointer;
+    return newData;
 }
 
 cv::Mat filter::getImage()
