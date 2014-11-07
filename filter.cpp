@@ -52,7 +52,6 @@ filter::filter(cl_context context, cl_uint deviceCount, cl_device_id* devices, c
 
 // Stores image to process
 // Creates buffers to store image on device
-// TODO: only need to pass in imgSize for this function, maybe set the image somewhere else
 void filter::setImage(cv::Mat img)
 {
     std::cout << "Creating image buffers" << std::endl;
@@ -90,10 +89,6 @@ void filter::setImage(cv::Mat img)
 
 void* filter::runProgram()
 {
-    imageWidth = image.cols;
-    imageHeight = image.rows;
-    imageSize = imageHeight * imageWidth;
-
     unsigned char newData [imageSize * 4];
 
     // set kernel arguments
