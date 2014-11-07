@@ -10,8 +10,6 @@
 #include <sstream>
 #include <fstream>
 
-//#include <array>
-
 #define MAX_LOG_SIZE (0x100000)
 #define DEBUG_BUFFER_SIZE 50 // cl_int
 
@@ -23,13 +21,10 @@ public:
     void* runProgram();
     cv::Mat getImage();
 private:
-    //filter() {}
     cv::Mat image;
     size_t imageWidth;
     size_t imageHeight;
     size_t imageSize;
-    //unsigned char* newDataPointer;
-    //unsigned char newData;
     const char* clPath;
     cl_int maskSize;
 

@@ -45,21 +45,8 @@ filter::filter(cl_context context, cl_uint deviceCount, cl_device_id* devices, c
     queue = clCreateCommandQueue(context,devices[0],0,&err);
     std::cout << "command queue error: " << err << "\n";
 
-
-    // Create Gaussian mask
-/*    int maskSize = 1; */ // actually sigma
-    //float * mask = createBlurMask(10.0f, &maskSize);
-
-    // Create buffer for mask
-//    cl_mem clMask = clCreateBuffer(context,
-//                                   CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-//                                   sizeof(float)*(maskSize*2+1)*(maskSize*2+1),
-//                                   mask,
-//                                   &err);
-//    std::cout << "clMask error: " << err << "\n";
-
-    // create Gaussian kernel
-    kernel = clCreateKernel(program, "gaussian_blur", &err);
+    // build kernel
+    kernel = clCreateKernel(program, "filter_kernel", &err);
     std::cout << "cl_kernel error: " << err << "\n";
 }
 
@@ -74,9 +61,6 @@ void filter::setImage(cv::Mat img)
     imageWidth = image.cols;
     imageHeight = image.rows;
     imageSize = imageHeight * imageWidth;
-
-//    unsigned char newData [imageSize * 4];
-//    newDataPointer = &newData;
 
     // Create an OpenCL buffer for the image
     clImage = clCreateBuffer(context,
@@ -115,7 +99,6 @@ void* filter::runProgram()
     // set kernel arguments
     err = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&clImage);
     std::cout << "kernel arg 0 error: " << err << "\n";
-//    clSetKernelArg(gaussianBlur, 1, sizeof(cl_mem), &clMask);
     err = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&clResult);
     std::cout << "kernel arg 1 error: " << err << "\n";
     err = clSetKernelArg(kernel, 2, sizeof(int), &imageWidth);
@@ -126,7 +109,7 @@ void* filter::runProgram()
     std::cout << "kernel arg 4 error: " << err << "\n";
     err = clSetKernelArg(kernel, 5, sizeof(cl_mem), &clDebug);
     std::cout << "kernel arg 5 error: " << err << "\n";
-//CL_SUCCESS
+    //CL_SUCCESS
     // load image to device
     err = clEnqueueWriteBuffer(queue,
                                clImage,
@@ -143,7 +126,7 @@ void* filter::runProgram()
     size_t localws[2] = {16,16};
     size_t globalws[2] = {imageWidth, imageHeight};
 
-    // Run Gaussian kernel
+    // Run filter kernel
     err = clEnqueueNDRangeKernel(queue,
                                  kernel,
                                  2,

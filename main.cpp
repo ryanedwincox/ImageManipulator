@@ -57,22 +57,23 @@ int main()
     // Will store filter results
     unsigned char* newDataPointer;
 
-    const char* lpfClPath = "/home/bluhaptics1/Documents/ImageManipulator/cl/gaussian_blur.cl";
+    const char* copyImageClPath = "/home/bluhaptics1/Documents/ImageManipulator/cl/copy_image.cl";
     cl_int lpfMaskSize = 3;
 
+    // TODO: create filters in another method and return the filter object
     // Create new filter
-    filter lpf(context, deviceCount, devices, lpfClPath, lpfMaskSize);
+    filter copy(context, deviceCount, devices, copyImageClPath, lpfMaskSize);
 
     // Create buffers and filter
-    lpf.setImage(image);
-    newDataPointer =  (unsigned char*) lpf.runProgram();
+    copy.setImage(image);
+    newDataPointer =  (unsigned char*) copy.runProgram();
 
     // Display images
     std::cout << "Display images" << std::endl;
     cv::Mat newImage = cv::Mat(cv::Size(imageWidth,imageHeight), CV_8UC4, newDataPointer);
 
     cv::namedWindow("Original Image", cv::WINDOW_AUTOSIZE); // Create a window for display.
-    cv::imshow("Original Image", lpf.getImage());           // Show our image inside it.
+    cv::imshow("Original Image", copy.getImage());           // Show our image inside it.
 
     cv::namedWindow("Blured Image", cv::WINDOW_AUTOSIZE); // Create a window for display.
     cv::imshow("Blured Image", newImage);                 // Show our image inside it.
