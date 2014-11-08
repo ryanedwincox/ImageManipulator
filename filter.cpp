@@ -72,7 +72,7 @@ void filter::setImage(cv::Mat img)
     // Create an OpenCL buffer for the result
     clResult = clCreateBuffer(context,
                               CL_MEM_WRITE_ONLY,
-                              imageSize * 4,
+                              imageSize * 3,
                               NULL,
                               &err);
     std::cout << "clResult Buffer error: " << err << "\n";
@@ -89,7 +89,7 @@ void filter::setImage(cv::Mat img)
 
 void* filter::runProgram()
 {
-    unsigned char newData [imageSize * 4];
+    unsigned char newData [imageSize * 3];
 
     // set kernel arguments
     err = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&clImage);
@@ -104,7 +104,7 @@ void* filter::runProgram()
     std::cout << "kernel arg 4 error: " << err << "\n";
     err = clSetKernelArg(kernel, 5, sizeof(cl_mem), &clDebug);
     std::cout << "kernel arg 5 error: " << err << "\n";
-    //CL_SUCCESS
+//    CL_SUCCESS
     // load image to device
     err = clEnqueueWriteBuffer(queue,
                                clImage,
@@ -138,7 +138,7 @@ void* filter::runProgram()
                               clResult,
                               CL_TRUE,
                               0,
-                              imageSize * 4,
+                              imageSize * 3,
                               (void*) newData,
                               0,
                               NULL,

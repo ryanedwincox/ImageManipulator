@@ -11,7 +11,8 @@ LIBS += -lOpenCL
 LIBS += `pkg-config opencv --libs`
 
 OTHER_FILES += \
-    cl/gaussian_blur.cl
+    cl/copy_image.cl
+    cl/low_pass.cl
 
 HEADERS += \
     filter.h

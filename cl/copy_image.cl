@@ -1,6 +1,6 @@
 __kernel void filter_kernel(
         __global uchar * image, //bgr
-        __global uchar4 * filteredImage, //bgra
+        __global uchar * filteredImage, //bgr
 	int imageWidth,
 	int imageHeight,
         __private int maskSize,
@@ -10,11 +10,9 @@ __kernel void filter_kernel(
     int ypos = get_global_id(1); 
 
     int imgPos = (ypos * imageWidth + xpos) * 3;
-    int filImgPos = (ypos * imageWidth + xpos);
-    filteredImage[filImgPos].x = image[imgPos+0];
-    filteredImage[filImgPos].y = image[imgPos+1];
-    filteredImage[filImgPos].z = image[imgPos+2];
-    filteredImage[filImgPos].w = 100;
+    filteredImage[imgPos+0] = image[imgPos+0];
+    filteredImage[imgPos+1] = image[imgPos+1];
+    filteredImage[imgPos+2] = image[imgPos+2];
 
 }
 

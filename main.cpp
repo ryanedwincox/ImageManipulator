@@ -58,19 +58,26 @@ int main()
     unsigned char* newDataPointer;
 
     const char* copyImageClPath = "/home/bluhaptics1/Documents/ImageManipulator/cl/copy_image.cl";
-    cl_int lpfMaskSize = 3;
+    const char* lowPassClPath = "/home/bluhaptics1/Documents/ImageManipulator/cl/low_pass.cl";
+    cl_int lpfMaskSize = 5;
 
     // TODO: create filters in another method and return the filter object
     // Create new filter
-    filter copy(context, deviceCount, devices, copyImageClPath, lpfMaskSize);
+    filter copy(context, deviceCount, devices, copyImageClPath, 0);
+    filter lpf(context, deviceCount, devices, lowPassClPath, lpfMaskSize);
 
-    // Create buffers and filter
+    //Create buffers and filter
     copy.setImage(image);
     newDataPointer =  (unsigned char*) copy.runProgram();
+    cv::Mat copiedImage = cv::Mat(cv::Size(imageWidth,imageHeight), CV_8UC3, newDataPointer);
+
+    // lpf filter
+    lpf.setImage(copiedImage);
+    newDataPointer = (unsigned char*) lpf.runProgram();
+    cv::Mat newImage = cv::Mat(cv::Size(imageWidth,imageHeight), CV_8UC3, newDataPointer);
 
     // Display images
     std::cout << "Display images" << std::endl;
-    cv::Mat newImage = cv::Mat(cv::Size(imageWidth,imageHeight), CV_8UC4, newDataPointer);
 
     cv::namedWindow("Original Image", cv::WINDOW_AUTOSIZE); // Create a window for display.
     cv::imshow("Original Image", copy.getImage());           // Show our image inside it.
@@ -81,5 +88,5 @@ int main()
     cv::waitKey(0);
 }
 
-
+//CL_SUCCESS
 
