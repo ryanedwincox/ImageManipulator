@@ -5,6 +5,13 @@
 filter::filter(cl_context context, cl_uint deviceCount, cl_device_id* devices, const char* clPath, cl_int maskSize)
 {
     this->context = context;
+    this->deviceCount = deviceCount;
+    this->devices = devices;
+    buildProgram(clPath, maskSize);
+}
+
+void filter::buildProgram(const char* clPath, cl_int maskSize)
+{
     this->clPath = clPath;
     this->maskSize = maskSize;
 
@@ -85,11 +92,22 @@ void filter::setImage(cv::Mat img)
                              &err);
     std::cout << "clDebug Buffer error: " << err << "\n";
 
+    // load image to device
+    err = clEnqueueWriteBuffer(queue,
+                               clImage,
+                               CL_TRUE,
+                               0,
+                               imageSize * 3,
+                               (void*) &image.data[0],
+                               0,
+                               NULL,
+                               NULL);
+    std::cout << "enqueueWriteImage error: " << err << "\n";
 }
 
-void* filter::runProgram()
+void filter::runProgram()
 {
-    unsigned char newData [imageSize * 3];
+//    unsigned char newData [imageSize * 3];
 
     // set kernel arguments
     err = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&clImage);
@@ -104,18 +122,6 @@ void* filter::runProgram()
     std::cout << "kernel arg 4 error: " << err << "\n";
     err = clSetKernelArg(kernel, 5, sizeof(cl_mem), &clDebug);
     std::cout << "kernel arg 5 error: " << err << "\n";
-//    CL_SUCCESS
-    // load image to device
-    err = clEnqueueWriteBuffer(queue,
-                               clImage,
-                               CL_TRUE,
-                               0,
-                               imageSize * 3,
-                               (void*) &image.data[0],
-                               0,
-                               NULL,
-                               NULL);
-    std::cout << "enqueueWriteImage error: " << err << "\n";
 
     // Set local and global workgroup sizes
     size_t localws[2] = {16,16};
@@ -132,6 +138,12 @@ void* filter::runProgram()
                                  NULL,
                                  NULL);
     std::cout << "clEnqueueNDRangeKernel error: " << err << "\n";
+
+    clImage = clResult;
+}
+
+void* filter::readOutput() {
+    unsigned char newData [imageSize * 3];
 
     // Transfer image back to host
     err = clEnqueueReadBuffer(queue,
@@ -162,7 +174,7 @@ void* filter::runProgram()
     return newData;
 }
 
-cv::Mat filter::getImage()
+cv::Mat filter::getInputImage()
 {
     return image;
 }

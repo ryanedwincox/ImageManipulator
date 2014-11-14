@@ -63,24 +63,25 @@ int main()
 
     // TODO: create filters in another method and return the filter object
     // Create new filter
-    filter copy(context, deviceCount, devices, copyImageClPath, 0);
-    filter lpf(context, deviceCount, devices, lowPassClPath, lpfMaskSize);
+    filter f1(context, deviceCount, devices, copyImageClPath, lpfMaskSize);
 
     //Create buffers and filter
-    copy.setImage(image);
-    newDataPointer =  (unsigned char*) copy.runProgram();
+    f1.setImage(image);
+    f1.runProgram();
+    newDataPointer = (unsigned char*) f1.readOutput();
     cv::Mat copiedImage = cv::Mat(cv::Size(imageWidth,imageHeight), CV_8UC3, newDataPointer);
 
     // lpf filter
-    lpf.setImage(copiedImage);
-    newDataPointer = (unsigned char*) lpf.runProgram();
+    f1.buildProgram(lowPassClPath, lpfMaskSize);
+    f1.runProgram();
+    newDataPointer = (unsigned char*) f1.readOutput();
     cv::Mat newImage = cv::Mat(cv::Size(imageWidth,imageHeight), CV_8UC3, newDataPointer);
 
     // Display images
     std::cout << "Display images" << std::endl;
 
     cv::namedWindow("Original Image", cv::WINDOW_AUTOSIZE); // Create a window for display.
-    cv::imshow("Original Image", copy.getImage());           // Show our image inside it.
+    cv::imshow("Original Image", f1.getInputImage());           // Show our image inside it.
 
     cv::namedWindow("Blured Image", cv::WINDOW_AUTOSIZE); // Create a window for display.
     cv::imshow("Blured Image", newImage);                 // Show our image inside it.
@@ -89,4 +90,5 @@ int main()
 }
 
 //CL_SUCCESS
+// TODO: Need to be able to share memory between filters so I don't have to copy back to host between each filter
 

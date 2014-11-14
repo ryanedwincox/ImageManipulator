@@ -18,8 +18,10 @@ class filter
 public:
     filter(cl_context context, cl_uint deviceCount, cl_device_id* devices, const char* clPath, cl_int maskSize);
     void setImage(cv::Mat img);
-    void* runProgram();
-    cv::Mat getImage();
+    void buildProgram(const char* clPath, cl_int maskSize);
+    void runProgram();
+    void* readOutput();
+    cv::Mat getInputImage();
 private:
     cv::Mat image;
     size_t imageWidth;
