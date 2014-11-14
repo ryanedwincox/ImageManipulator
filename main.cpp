@@ -5,8 +5,6 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 
-filter initializeOpenCL();
-
 int main()
 {
     // Load image
@@ -31,7 +29,7 @@ int main()
     cl_int lpfMaskSize = 5;
 
     // Create filter object
-    filter f1 = initializeOpenCL();
+    filter f1;
 
     // Copy filter
     f1.buildProgram(copyImageClPath, 0);
@@ -58,41 +56,4 @@ int main()
     cv::waitKey(0);
 }
 
-filter initializeOpenCL()
-{
-    // get all platforms (drivers)
-    std::vector<cl::Platform> all_platforms;
-    cl::Platform::get(&all_platforms);
-    if(all_platforms.size()==0){
-        std::cout<<" No platforms found. Check OpenCL installation!\n";
-        exit(1);
-    }
-    cl::Platform default_platform=all_platforms[0];
-    std::cout << "Using platform: "<<default_platform.getInfo<CL_PLATFORM_NAME>()<<"\n";
-
-    // get first platform
-    cl_platform_id platform;
-    cl_int err = clGetPlatformIDs(1, &platform, NULL);
-    std::cout << "platform error: " << err << std::endl;
-
-    // get device count
-    cl_uint deviceCount;
-    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, NULL, &deviceCount);
-    std::cout << "device count error: " << err << std::endl;
-
-    // get devices
-    cl_device_id* devices;
-    devices = new cl_device_id[deviceCount];
-    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, deviceCount, devices, NULL);
-    std::cout << "device ID error: " << err << std::endl;
-
-    // create a single context for all devices
-    cl_context context = clCreateContext(NULL, deviceCount, devices, NULL, NULL, &err);
-    std::cout << "context error: " << err << "\n";
-
-    // Create new filter
-    filter filter(context, deviceCount, devices);
-
-    return filter;
-}
 

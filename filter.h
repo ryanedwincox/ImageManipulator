@@ -16,11 +16,12 @@
 class filter
 {
 public:
-    filter(cl_context context, cl_uint deviceCount, cl_device_id* devices);
+    filter();
     void setImage(cv::Mat img);
     void buildProgram(const char* clPath, cl_int maskSize);
     void runProgram();
     void* readOutput();
+    void* readDebugOutput();
     cv::Mat getInputImage();
 private:
     cv::Mat image;

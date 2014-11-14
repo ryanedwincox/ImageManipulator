@@ -1,14 +1,38 @@
 #include "filter.h"
 
 // Constructor
-// Builds OpenCl program
-filter::filter(cl_context context, cl_uint deviceCount, cl_device_id* devices)
+filter::filter()
 {
-    this->context = context;
-    this->deviceCount = deviceCount;
-    this->devices = devices;
+    // get all platforms (drivers)
+    std::vector<cl::Platform> all_platforms;
+    cl::Platform::get(&all_platforms);
+    if(all_platforms.size()==0){
+        std::cout<<" No platforms found. Check OpenCL installation!\n";
+        exit(1);
+    }
+    cl::Platform default_platform=all_platforms[0];
+    std::cout << "Using platform: "<<default_platform.getInfo<CL_PLATFORM_NAME>()<<"\n";
+
+    // get first platform
+    cl_platform_id platform;
+    cl_int err = clGetPlatformIDs(1, &platform, NULL);
+    std::cout << "platform error: " << err << std::endl;
+
+    // get device count
+    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, NULL, &deviceCount);
+    std::cout << "device count error: " << err << std::endl;
+
+    // get devices
+    devices = new cl_device_id[deviceCount];
+    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, deviceCount, devices, NULL);
+    std::cout << "device ID error: " << err << std::endl;
+
+    // create a single context for all devices
+    context = clCreateContext(NULL, deviceCount, devices, NULL, NULL, &err);
+    std::cout << "context error: " << err << "\n";
 }
 
+// Builds OpenCl program
 void filter::buildProgram(const char* clPath, cl_int maskSize)
 {
     this->clPath = clPath;
@@ -104,10 +128,9 @@ void filter::setImage(cv::Mat img)
     std::cout << "enqueueWriteImage error: " << err << "\n";
 }
 
+// Excecutes the kernel
 void filter::runProgram()
 {
-//    unsigned char newData [imageSize * 3];
-
     // set kernel arguments
     err = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&clImage);
     std::cout << "kernel arg 0 error: " << err << "\n";
@@ -141,6 +164,7 @@ void filter::runProgram()
     clImage = clResult;
 }
 
+// Returns a pointer to the data read from the output buffer
 void* filter::readOutput() {
     unsigned char newData [imageSize * 3];
 
@@ -156,7 +180,12 @@ void* filter::readOutput() {
                               NULL);
     std::cout << "enqueueReadImage error: " << err << "\n";
 
-    // Transfer debug buffer back to host
+    return newData;
+}
+
+// Transfer debug buffer back to host
+void* filter::readDebugOutput()
+{
     //float debug [DEBUG_BUFFER_SIZE];
     unsigned char debug [DEBUG_BUFFER_SIZE];
     err = clEnqueueReadBuffer(queue,
@@ -170,7 +199,7 @@ void* filter::readOutput() {
                               NULL);
     std::cout << "clDebug read buffer error: " << err << "\n";
 
-    return newData;
+    return debug;
 }
 
 cv::Mat filter::getInputImage()
