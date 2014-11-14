@@ -16,7 +16,7 @@
 class filter
 {
 public:
-    filter(cl_context context, cl_uint deviceCount, cl_device_id* devices, const char* clPath, cl_int maskSize);
+    filter(cl_context context, cl_uint deviceCount, cl_device_id* devices);
     void setImage(cv::Mat img);
     void buildProgram(const char* clPath, cl_int maskSize);
     void runProgram();

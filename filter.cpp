@@ -2,12 +2,11 @@
 
 // Constructor
 // Builds OpenCl program
-filter::filter(cl_context context, cl_uint deviceCount, cl_device_id* devices, const char* clPath, cl_int maskSize)
+filter::filter(cl_context context, cl_uint deviceCount, cl_device_id* devices)
 {
     this->context = context;
     this->deviceCount = deviceCount;
     this->devices = devices;
-    buildProgram(clPath, maskSize);
 }
 
 void filter::buildProgram(const char* clPath, cl_int maskSize)

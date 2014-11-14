@@ -5,40 +5,10 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 
-cl_context initializeOpenCL();
+filter initializeOpenCL();
 
 int main()
 {
-    // get all platforms (drivers)
-    std::vector<cl::Platform> all_platforms;
-    cl::Platform::get(&all_platforms);
-    if(all_platforms.size()==0){
-        std::cout<<" No platforms found. Check OpenCL installation!\n";
-        exit(1);
-    }
-    cl::Platform default_platform=all_platforms[0];
-    std::cout << "Using platform: "<<default_platform.getInfo<CL_PLATFORM_NAME>()<<"\n";
-
-    // get first platform
-    cl_platform_id platform;
-    cl_int err = clGetPlatformIDs(1, &platform, NULL);
-    std::cout << "platform error: " << err << std::endl;
-
-    // get device count
-    cl_uint deviceCount;
-    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, NULL, &deviceCount);
-    std::cout << "device count error: " << err << std::endl;
-
-    // get device count
-    cl_device_id* devices;
-    devices = new cl_device_id[deviceCount];
-    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, deviceCount, devices, NULL);
-    std::cout << "device ID error: " << err << std::endl;
-
-    // create a single context for all devices
-    cl_context context = clCreateContext(NULL, deviceCount, devices, NULL, NULL, &err);
-    std::cout << "context error: " << err << "\n";
-
     // Load image
     cv::Mat image;
     image = cv::imread("/home/bluhaptics1/Documents/ImageManipulator/images/Lenna.png", CV_LOAD_IMAGE_COLOR);
@@ -52,7 +22,6 @@ int main()
 
     size_t imageWidth = image.cols;
     size_t imageHeight = image.rows;
-    size_t imageSize = imageHeight * imageWidth;
 
     // Will store filter results
     unsigned char* newDataPointer;
@@ -61,11 +30,11 @@ int main()
     const char* lowPassClPath = "/home/bluhaptics1/Documents/ImageManipulator/cl/low_pass.cl";
     cl_int lpfMaskSize = 5;
 
-    // TODO: create filters in another method and return the filter object
-    // Create new filter
-    filter f1(context, deviceCount, devices, copyImageClPath, lpfMaskSize);
+    // Create filter object
+    filter f1 = initializeOpenCL();
 
-    //Create buffers and filter
+    // Copy filter
+    f1.buildProgram(copyImageClPath, 0);
     f1.setImage(image);
     f1.runProgram();
     newDataPointer = (unsigned char*) f1.readOutput();
@@ -89,6 +58,41 @@ int main()
     cv::waitKey(0);
 }
 
-//CL_SUCCESS
-// TODO: Need to be able to share memory between filters so I don't have to copy back to host between each filter
+filter initializeOpenCL()
+{
+    // get all platforms (drivers)
+    std::vector<cl::Platform> all_platforms;
+    cl::Platform::get(&all_platforms);
+    if(all_platforms.size()==0){
+        std::cout<<" No platforms found. Check OpenCL installation!\n";
+        exit(1);
+    }
+    cl::Platform default_platform=all_platforms[0];
+    std::cout << "Using platform: "<<default_platform.getInfo<CL_PLATFORM_NAME>()<<"\n";
+
+    // get first platform
+    cl_platform_id platform;
+    cl_int err = clGetPlatformIDs(1, &platform, NULL);
+    std::cout << "platform error: " << err << std::endl;
+
+    // get device count
+    cl_uint deviceCount;
+    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, NULL, &deviceCount);
+    std::cout << "device count error: " << err << std::endl;
+
+    // get devices
+    cl_device_id* devices;
+    devices = new cl_device_id[deviceCount];
+    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, deviceCount, devices, NULL);
+    std::cout << "device ID error: " << err << std::endl;
+
+    // create a single context for all devices
+    cl_context context = clCreateContext(NULL, deviceCount, devices, NULL, NULL, &err);
+    std::cout << "context error: " << err << "\n";
+
+    // Create new filter
+    filter filter(context, deviceCount, devices);
+
+    return filter;
+}
 
