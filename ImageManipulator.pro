@@ -12,6 +12,7 @@ LIBS += `pkg-config opencv --libs`
 
 OTHER_FILES += \
     cl/copy_image.cl
+OTHER_FILES += \
     cl/low_pass.cl
 
 HEADERS += \

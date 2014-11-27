@@ -136,9 +136,9 @@ void filter::runProgram()
     std::cout << "kernel arg 0 error: " << err << "\n";
     err = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&clResult);
     std::cout << "kernel arg 1 error: " << err << "\n";
-    err = clSetKernelArg(kernel, 2, sizeof(int), &imageWidth);
+    err = clSetKernelArg(kernel, 2, sizeof(cl_int), &imageWidth);
     std::cout << "kernel arg 2 error: " << err << "\n";
-    err = clSetKernelArg(kernel, 3, sizeof(int), &imageHeight);
+    err = clSetKernelArg(kernel, 3, sizeof(cl_int), &imageHeight);
     std::cout << "kernel arg 3 error: " << err << "\n";
     err = clSetKernelArg(kernel, 4, sizeof(cl_int), &maskSize);
     std::cout << "kernel arg 4 error: " << err << "\n";

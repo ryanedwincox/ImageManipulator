@@ -32,14 +32,15 @@ int main()
     filter f1;
 
     // Copy filter
-    f1.buildProgram(copyImageClPath, 0);
-    f1.setImage(image);
-    f1.runProgram();
-    newDataPointer = (unsigned char*) f1.readOutput();
-    cv::Mat copiedImage = cv::Mat(cv::Size(imageWidth,imageHeight), CV_8UC3, newDataPointer);
+//    f1.buildProgram(copyImageClPath, 0);
+//    f1.setImage(image);
+//    f1.runProgram();
+//    newDataPointer = (unsigned char*) f1.readOutput();
+//    cv::Mat copiedImage = cv::Mat(cv::Size(imageWidth,imageHeight), CV_8UC3, newDataPointer);
 
     // lpf filter
     f1.buildProgram(lowPassClPath, lpfMaskSize);
+    f1.setImage(image);
     f1.runProgram();
     newDataPointer = (unsigned char*) f1.readOutput();
     cv::Mat newImage = cv::Mat(cv::Size(imageWidth,imageHeight), CV_8UC3, newDataPointer);

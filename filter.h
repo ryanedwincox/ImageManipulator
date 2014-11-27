@@ -1,7 +1,6 @@
 #ifndef FILTER_H
 #define FILTER_H
 
-#include "lowpassfilter.h"
 #include </usr/include/CL/cl.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
