@@ -1,35 +1,82 @@
 #include "filter.h"
 
+using namespace std;
+
 // Constructor
 filter::filter()
 {
-    // get all platforms (drivers)
-    std::vector<cl::Platform> all_platforms;
-    cl::Platform::get(&all_platforms);
-    if(all_platforms.size()==0){
-        std::cout<<" No platforms found. Check OpenCL installation!\n";
-        exit(1);
-    }
-    cl::Platform default_platform=all_platforms[0];
-    std::cout << "Using platform: "<<default_platform.getInfo<CL_PLATFORM_NAME>()<<"\n";
+//    // get all platforms (drivers)
+//    vector<cl::Platform> all_platforms;
+//    cl::Platform::get(&all_platforms);
+//    if(all_platforms.size()==0){
+//        cout<<" No platforms found. Check OpenCL installation!\n";
+//        exit(1);
+//    }
+//    cl::Platform default_platform=all_platforms[0];
+//    cout << "Using platform: "<<default_platform.getInfo<CL_PLATFORM_NAME>()<<"\n";
 
-    // get first platform
-    cl_platform_id platform;
-    cl_int err = clGetPlatformIDs(1, &platform, NULL);
-    std::cout << "platform error: " << err << std::endl;
+//    // get first platform
+//    cl_platform_id platform;
+//    cl_int err = clGetPlatformIDs(1, &platform, NULL);
+//    cout << "platform error: " << err << endl;
+
+    cl_int init_status;
+    cl_platform_id *platforms;
+
+    cl_uint numPlatforms = 0;
+
+    // Query for the number of recongnized platforms
+    init_status = clGetPlatformIDs(0, NULL, &numPlatforms);
+    if(init_status != CL_SUCCESS) {
+        cout << "GPU init: clGetPlatformIDs failed" << endl;;
+    }
+
+    // Make sure some platforms were found
+    if(numPlatforms == 0) {
+        cout << "GPU init: No platforms detected" << endl;;
+    }
+
+    // Allocate enough space for each platform
+    platforms = (cl_platform_id*)malloc(numPlatforms*sizeof(cl_platform_id));
+    if(platforms == NULL) {
+        cout << "not enough space for platforms" << endl;
+    }
+
+    // Fill in platforms
+    init_status = clGetPlatformIDs(numPlatforms, platforms, NULL);
+    if(init_status != CL_SUCCESS) {
+        cout << "GPU init: clGetPlatformIDs failed" << endl;;
+    }
+
+    // Print out some basic information about each platform
+    cout << numPlatforms << " platforms detected" << endl;
+    for(unsigned int i = 0; i < numPlatforms; i++) {
+        char buf[100];
+        cout << "Platform: " << i << endl;
+        init_status = clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
+                                        sizeof(buf), buf, NULL);
+        cout << "\tVendor: " << buf << endl;
+        init_status |= clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME,
+                                         sizeof(buf), buf, NULL);
+        cout << "\tName: " <<  buf << endl;
+
+        if(init_status != CL_SUCCESS) {
+            cout << "GPU init: clGetPlatformInfo failed" << endl;
+        }
+    }
 
     // get device count
-    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, NULL, &deviceCount);
-    std::cout << "device count error: " << err << std::endl;
+    err = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &deviceCount);
+    cout << "device count error: " << err << endl;
 
     // get devices
     devices = new cl_device_id[deviceCount];
-    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, deviceCount, devices, NULL);
-    std::cout << "device ID error: " << err << std::endl;
+    err = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, deviceCount, devices, NULL);
+    cout << "device ID error: " << err << endl;
 
     // create a single context for all devices
     context = clCreateContext(NULL, deviceCount, devices, NULL, NULL, &err);
-    std::cout << "context error: " << err << "\n";
+    cout << "context error: " << err << "\n";
 }
 
 // Builds OpenCl program
@@ -58,7 +105,7 @@ void filter::buildProgram(const char* clPath, cl_int maskSize)
     // build program
     const char* buildOptions = "";
     err = clBuildProgram(program, deviceCount, devices, buildOptions, NULL, NULL);
-    std::cout << "program error: " << err << "\n";
+    cout << "program error: " << err << "\n";
 
     // create the log string and show it to the user. Then quit
     char buildLog[MAX_LOG_SIZE];
@@ -69,22 +116,22 @@ void filter::buildProgram(const char* clPath, cl_int maskSize)
                           &buildLog,
                           NULL);
     printf("**BUILD LOG**\n%s",buildLog);
-    std::cout << "clGetProgramBuildInfo error: " << err << "\n";
+    cout << "clGetProgramBuildInfo error: " << err << "\n";
 
     //create queue to which we will push commands for the device
     queue = clCreateCommandQueue(context,devices[0],0,&err);
-    std::cout << "command queue error: " << err << "\n";
+    cout << "command queue error: " << err << "\n";
 
     // build kernel
     kernel = clCreateKernel(program, "filter_kernel", &err);
-    std::cout << "cl_kernel error: " << err << "\n";
+    cout << "cl_kernel error: " << err << "\n";
 }
 
 // Stores image to process
 // Creates buffers to store image on device
 void filter::setImage(cv::Mat img)
 {
-    std::cout << "Creating image buffers" << std::endl;
+    cout << "Creating image buffers" << endl;
     image = img;
 
     imageWidth = image.cols;
@@ -97,7 +144,7 @@ void filter::setImage(cv::Mat img)
                              imageSize * 3,
                              NULL,
                              &err);
-    std::cout << "clImage Buffer error: " << err << "\n";
+    cout << "clImage Buffer error: " << err << "\n";
 
     // Create an OpenCL buffer for the result
     clResult = clCreateBuffer(context,
@@ -105,7 +152,7 @@ void filter::setImage(cv::Mat img)
                               imageSize * 3,
                               NULL,
                               &err);
-    std::cout << "clResult Buffer error: " << err << "\n";
+    cout << "clResult Buffer error: " << err << "\n";
 
     // Create an extra buffer for debugging
     clDebug = clCreateBuffer(context,
@@ -113,7 +160,7 @@ void filter::setImage(cv::Mat img)
                              DEBUG_BUFFER_SIZE,
                              NULL,
                              &err);
-    std::cout << "clDebug Buffer error: " << err << "\n";
+    cout << "clDebug Buffer error: " << err << "\n";
 
     // load image to device
     err = clEnqueueWriteBuffer(queue,
@@ -125,7 +172,7 @@ void filter::setImage(cv::Mat img)
                                0,
                                NULL,
                                NULL);
-    std::cout << "enqueueWriteImage error: " << err << "\n";
+    cout << "enqueueWriteImage error: " << err << "\n";
 }
 
 // Excecutes the kernel
@@ -133,17 +180,17 @@ void filter::runProgram()
 {
     // set kernel arguments
     err = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&clImage);
-    std::cout << "kernel arg 0 error: " << err << "\n";
+    cout << "kernel arg 0 error: " << err << "\n";
     err = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&clResult);
-    std::cout << "kernel arg 1 error: " << err << "\n";
+    cout << "kernel arg 1 error: " << err << "\n";
     err = clSetKernelArg(kernel, 2, sizeof(cl_int), &imageWidth);
-    std::cout << "kernel arg 2 error: " << err << "\n";
+    cout << "kernel arg 2 error: " << err << "\n";
     err = clSetKernelArg(kernel, 3, sizeof(cl_int), &imageHeight);
-    std::cout << "kernel arg 3 error: " << err << "\n";
+    cout << "kernel arg 3 error: " << err << "\n";
     err = clSetKernelArg(kernel, 4, sizeof(cl_int), &maskSize);
-    std::cout << "kernel arg 4 error: " << err << "\n";
+    cout << "kernel arg 4 error: " << err << "\n";
     err = clSetKernelArg(kernel, 5, sizeof(cl_mem), &clDebug);
-    std::cout << "kernel arg 5 error: " << err << "\n";
+    cout << "kernel arg 5 error: " << err << "\n";
 
     // Set local and global workgroup sizes
     size_t localws[2] = {16,16};
@@ -159,7 +206,7 @@ void filter::runProgram()
                                  0,
                                  NULL,
                                  NULL);
-    std::cout << "clEnqueueNDRangeKernel error: " << err << "\n";
+    cout << "clEnqueueNDRangeKernel error: " << err << "\n";
 
     clImage = clResult;
 }
@@ -178,7 +225,7 @@ void* filter::readOutput() {
                               0,
                               NULL,
                               NULL);
-    std::cout << "enqueueReadImage error: " << err << "\n";
+    cout << "enqueueReadImage error: " << err << "\n";
 
     return newData;
 }
@@ -197,7 +244,7 @@ void* filter::readDebugOutput()
                               0,
                               NULL,
                               NULL);
-    std::cout << "clDebug read buffer error: " << err << "\n";
+    cout << "clDebug read buffer error: " << err << "\n";
 
     return debug;
 }

@@ -5,7 +5,7 @@ CONFIG -= qt
 SOURCES += main.cpp \
     filter.cpp
 
-INCLUDEPATH += '/opt/AMDAPP/include'
+INCLUDEPATH += '/usr/local/cuda-6.5/include'
 LIBS += -lOpenCL
 
 LIBS += `pkg-config opencv --libs`

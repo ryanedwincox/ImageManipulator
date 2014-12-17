@@ -69,9 +69,9 @@ __kernel void filter_kernel(
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // copies image for testing, not need for convolution
-    blurredImage[imgPosGlobal+0 - buffOffset + 3] = P[imgPosLocal+0 + 3];
-    blurredImage[imgPosGlobal+1 - buffOffset + 3] = P[imgPosLocal+1 + 3];
-    blurredImage[imgPosGlobal+2 - buffOffset + 3] = P[imgPosLocal+2 + 3];
+    //blurredImage[imgPosGlobal+0 - buffOffset + 3] = P[imgPosLocal+0 + 3];
+    //blurredImage[imgPosGlobal+1 - buffOffset + 3] = P[imgPosLocal+1 + 3];
+    //blurredImage[imgPosGlobal+2 - buffOffset + 3] = P[imgPosLocal+2 + 3];
 
     // Perform convolution
     uchar sum0 = 0;
@@ -80,13 +80,13 @@ __kernel void filter_kernel(
 
     for (int i = -r; i <= r; i++) {
         for (int j = -r; j <= r; j++) {
-            sum0 = sum0 + P[imgPosLocal+0 + buffOffset + 0 + ((BLOCK_SIZE+r*2) * j + i)*3] / (maskSize * maskSize);
-            sum1 = sum1 + P[imgPosLocal+1 + buffOffset + 0 + ((BLOCK_SIZE+r*2) * j + i)*3] / (maskSize * maskSize);
-            sum2 = sum2 + P[imgPosLocal+2 + buffOffset + 0 + ((BLOCK_SIZE+r*2) * j + i)*3] / (maskSize * maskSize);
+            sum0 = sum0 + P[imgPosLocal+0 + buffOffset + 3 + ((BLOCK_SIZE+r*2) * j + i)*3] / (maskSize * maskSize);
+            sum1 = sum1 + P[imgPosLocal+1 + buffOffset + 3 + ((BLOCK_SIZE+r*2) * j + i)*3] / (maskSize * maskSize);
+            sum2 = sum2 + P[imgPosLocal+2 + buffOffset + 3 + ((BLOCK_SIZE+r*2) * j + i)*3] / (maskSize * maskSize);
         }
     }
-    blurredImage[imgPosGlobal+0 - buffOffset ] = sum0;
-    blurredImage[imgPosGlobal+1 - buffOffset ] = sum1;
-    blurredImage[imgPosGlobal+2 - buffOffset ] = sum2;
+    blurredImage[imgPosGlobal+0 - buffOffset + 9] = sum0;
+    blurredImage[imgPosGlobal+1 - buffOffset + 9] = sum1;
+    blurredImage[imgPosGlobal+2 - buffOffset + 9] = sum2;
 }
 

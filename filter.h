@@ -1,7 +1,8 @@
 #ifndef FILTER_H
 #define FILTER_H
 
-#include </usr/include/CL/cl.hpp>
+//#include </usr/include/CL/cl.hpp>
+#include <CL/cl.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
